@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Respostas dos Usuários</title>
+</head>
+<body>
+    <h1>Respostas dos Usuários</h1>
+    <a href="{{ url_for('home') }}">Voltar para a Home</a><br><br>
+
+    {% if questions %}
+        <ul>
+            {% for question in questions %}
+                <li>
+                    <strong>{{ question['question'] }}</strong><br>
+                    
+                    <!-- Salvando a resposta correta de forma segura -->
+                    {% set correct_answer = question['correct_answer']|string|trim|lower %}
+
+                    <p><strong>Resposta Correta:</strong> <span style="color: blue;">{{ correct_answer }}</span></p>
+                    <p><strong>Respostas dos Usuários:</strong></p>
+
+                    <ul>
+                        {% for answer in question['answers'] %}
+                            <li>
+                                <strong>{{ answer['user'] }}:</strong> {{ answer['answer'] }}
+
+                                <!-- Normalizando a resposta do usuário para comparação -->
+                                {% set user_answer = answer['answer']|string|trim|lower %}
+
+                                {% if user_answer == correct_answer %}
+                                    <span style="color: green; font-weight: bold;">(Correta)</span>
+                                {% else %}
+                                    <span style="color: red; font-weight: bold;">(Errada)</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Não há perguntas ainda.</p>
+    {% endif %}
+</body>
+</html>

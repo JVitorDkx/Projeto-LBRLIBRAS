@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registrar</title>
+</head>
+<body>
+    <h1>Registrar</h1>
+    <a href="{{ url_for('home') }}">Voltar para a Home</a><br><br>
+    <form method="POST">
+        Nome de Usuário: <input type="text" name="username"><br>
+        Senha: <input type="password" name="password"><br>
+        <button type="submit">Registrar</button>
+    </form>
+    <p>Já tem uma conta? <a href="{{ url_for('login') }}">Login</a></p>
+</body>
+</html>
