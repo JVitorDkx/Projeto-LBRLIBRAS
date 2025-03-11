@@ -7,12 +7,32 @@
     <h1>Bem-vindo, {{ username }}!</h1>
     <a href="{{ url_for('create_question') }}">Criar Pergunta</a><br>
     <a href="{{ url_for('answer_question') }}">Responder Perguntas</a><br>
-    <a href="{{ url_for('responses') }}">Ver Respostas</a><br>
+    <a href="{{ url_for('responses') }}">Ver Respostas</a><br><br>
+
+    <!-- Links do FlutterFlow separados -->
+    <a href="{{ url_for('flutter') }}">FlutterFlow - Versão integrada</a><br>
+    <a href="https://llibras-bpj6xb.flutterflow.app/" target="_blank">FlutterFlow - Link direto na web</a><br><br>
+
     {% if username != "Visitante" %}
         <a href="{{ url_for('logout') }}">Sair</a>
     {% else %}
-        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('login') }}">Login</a><br>
         <a href="{{ url_for('register') }}">Registrar</a>
     {% endif %}
+
+    <!-- API VLibras -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
+    <!-- API VLibras -->
+
 </body>
 </html>

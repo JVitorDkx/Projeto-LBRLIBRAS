@@ -169,5 +169,9 @@ def logout():
     session.pop('username', None)  # Remove o usuário da sessão
     return redirect(url_for('home'))  # Redireciona de volta para a página inicial
 
+@app.route('/flutter')
+def flutter():
+    return render_template('flutter.html')
+
 if __name__ == "__main__":
     app.run(debug=True)
