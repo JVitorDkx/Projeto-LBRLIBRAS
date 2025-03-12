@@ -1,7 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import os
 import json
-
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Chave secreta para a sessão
@@ -24,14 +23,12 @@ def save_users(users):
 
 # Função para carregar perguntas
 def load_questions():
-    # Carrega as perguntas de um arquivo ou banco de dados
     try:
         with open(QUESTIONS_FILE, 'r') as f:
             questions = json.load(f)
     except FileNotFoundError:
         questions = []
     
-    # Garantir que a chave 'answers' exista para cada pergunta
     for question in questions:
         if 'answers' not in question:
             question['answers'] = []
@@ -43,82 +40,97 @@ def save_questions(questions):
     with open(QUESTIONS_FILE, 'w') as f:
         json.dump(questions, f)
 
-# Página de registro
+# Página de registro (aceita JSON e formulário)
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        username = data.get('username')
+        password = data.get('password')
         users = load_users()
 
-        # Verifica se o usuário já existe
-        if username in users:
-            return "Usuário já existe!"
+        if not username or not password:
+            return jsonify({"error": "Usuário e senha são obrigatórios!"}), 400
 
-        # Adiciona novo usuário
+        if username in users:
+            return jsonify({"error": "Usuário já existe!"}), 400
+
         users[username] = {'password': password}
         save_users(users)
 
-        return redirect(url_for('login'))
+        return jsonify({"message": "Usuário cadastrado com sucesso!"}), 201
+
     return render_template('register.html')
 
-# Página de login
+# Página de login (aceita JSON e formulário)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        username = data.get('username')
+        password = data.get('password')
         users = load_users()
 
-        # Verifica se o usuário existe e se a senha está correta
+        if not username or not password:
+            return jsonify({"error": "Usuário e senha são obrigatórios!"}), 400
+
         if username in users and users[username]['password'] == password:
             session['username'] = username
-            return redirect(url_for('home'))
+            return jsonify({"message": "Login bem-sucedido!"}), 200
 
-        return "Usuário ou senha incorretos!"
+        return jsonify({"error": "Usuário ou senha incorretos!"}), 401
+
     return render_template('login.html')
 
-# Página inicial (primeira tela carregada)
+# Página inicial
 @app.route('/')
 def home():
-    # Se o usuário estiver logado, mostra o conteúdo da home
     if 'username' in session:
         return render_template('home.html', username=session['username'])
-    
-    # Se não estiver logado, mostra a home sem exigir login
     return render_template('home.html', username="Visitante")
 
+# Página para criar perguntas (Aceita JSON e formulário HTML)
 @app.route('/create_question', methods=['GET', 'POST'])
 def create_question():
     if 'username' not in session:
-        return redirect(url_for('login'))
+        return jsonify({"error": "Não autorizado"}), 403
 
     if request.method == 'POST':
-        question_text = request.form['question']
-        answers = [
-            request.form['answer1'],
-            request.form['answer2'],
-            request.form['answer3'],
-            request.form['answer4']  # A resposta correta
-        ]
-
-
-        # Descobrir o novo índice da resposta correta após o embaralhamento
-        correct_answer_index = answers.index(request.form['answer4'])  # Resposta correta original
-
+        if request.is_json:
+            data = request.get_json()
+            question_text = data.get('question')
+            answers = data.get('answers')
+            correct_answer = data.get('correct_answer')
+        else:
+            question_text = request.form['question']
+            answers = [
+                request.form['answer1'],
+                request.form['answer2'],
+                request.form['answer3'],
+                request.form['answer4']
+            ]
+            correct_answer = request.form['answer4']
+        
         question_data = {
             'question': question_text,
             'answers': answers,
-            'correct_answer': request.form['answer4'],  # Agora salva a resposta correta
-            'correct_answer_index': correct_answer_index,
-            'user_responses': []  # Lista para armazenar respostas dos usuários
+            'correct_answer': correct_answer,
+            'user_responses': []
         }
 
         questions = load_questions()
         questions.append(question_data)
         save_questions(questions)
 
-        return redirect(url_for('home'))
+        return jsonify({"message": "Pergunta cadastrada com sucesso!"}), 201
 
     return render_template('create_question.html')
 
@@ -131,43 +143,40 @@ def answer_question():
     questions = load_questions()
 
     if request.method == 'POST':
-        question_id = int(request.form['question_id'])
-        user_answer = request.form['answer']
-
-        # Obtém a resposta correta da pergunta
+        # Usar request.get_json() para pegar os dados em JSON no corpo da requisição
+        data = request.get_json()
+        
+        question_id = int(data['question_id'])
+        user_answer = data['answer']
         correct_answer = questions[question_id]['correct_answer']
-
-        # Normaliza as respostas para evitar erros de comparação
         is_correct = user_answer.strip().lower() == correct_answer.strip().lower()
 
-        # Certificar que a chave 'answers' existe antes de adicionar uma resposta
         if 'answers' not in questions[question_id]:
             questions[question_id]['answers'] = []
 
         questions[question_id]['answers'].append({
             'user': session['username'],
             'answer': user_answer,
-            'is_correct': is_correct  # Armazena se a resposta foi correta
+            'is_correct': is_correct
         })
 
         save_questions(questions)
-
-        return redirect(url_for('responses'))  # Redireciona para ver as respostas
+        return redirect(url_for('responses'))
 
     return render_template('answer_question.html', questions=questions)
+
 
 # Página de respostas
 @app.route('/responses')
 def responses():
-    # Carrega as perguntas e suas respectivas respostas
     questions = load_questions()  
     return render_template('responses.html', questions=questions)
 
 # Página de logout
 @app.route('/logout')
 def logout():
-    session.pop('username', None)  # Remove o usuário da sessão
-    return redirect(url_for('home'))  # Redireciona de volta para a página inicial
+    session.pop('username', None)
+    return redirect(url_for('home'))
 
 @app.route('/flutter')
 def flutter():
